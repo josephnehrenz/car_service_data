@@ -1,136 +1,117 @@
+# -*- coding: utf-8 -*-
 """
-Car Service Data Analysis Script
+=== KAGGLE NOTEBOOK ===
+Car Service Data Analysis - Starter Notebook
 """
+# %% [markdown]
+# # 🚗 Car Service Data Analysis
+# 
+# **Quick-start analysis for the Car Service dataset**
+# 
+# This notebook loads data directly from GitHub and provides basic analysis.
 
+# %% [markdown]
+# ## 📥 Option 1: Load from GitHub Directly
+
+# %%
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def load_data(github_username="josephnehrenz"):
-    """
-    Load car service data directly from GitHub
-    
-    Args:
-        github_username: josephnehrenz
-    
-    Returns:
-        Three DataFrames: service_df, line_df, subitem_df
-    """
-    base_url = f"https://raw.githubusercontent.com/{github_username}/car_service_data/refs/heads/main/data/"
-    
-    print("🚗 Loading Car Service Data...")
-    print("=" * 50)
-    
-    try:
-        service_df = pd.read_csv(f"{base_url}service_records.csv")
-        line_df = pd.read_csv(f"{base_url}line_items.csv")
-        subitem_df = pd.read_csv(f"{base_url}line_subitems.csv")
-        
-        print("✅ Successfully loaded all datasets!")
-        print(f"   • Service records: {len(service_df)} rows")
-        print(f"   • Line items: {len(line_df)} rows")
-        print(f"   • Subitems: {len(subitem_df)} rows")
-        
-        return service_df, line_df, subitem_df
-        
-    except Exception as e:
-        print(f"❌ Error loading data: {e}")
-        print(f"\\n🔧 Please update github_username parameter")
-        print(f"   Current: '{github_username}'")
-        return None, None, None
+# Configuration - UPDATE THIS!
+GITHUB_USERNAME = "josephnehrenz"
+REPO_NAME = "car_service_data"
+BRANCH = "main"
 
-def basic_analysis(service_df, line_df, subitem_df):
-    """Run basic analysis and create visualizations"""
+base_url = f"https://raw.githubusercontent.com/{GITHUB_USERNAME}/{REPO_NAME}/refs/heads/{BRANCH}/data/"
+
+print("🚗 Loading Car Service Data from GitHub...")
+print("=" * 50)
+
+try:
+    service_df = pd.read_csv(f"{base_url}service_records.csv")
+    line_df = pd.read_csv(f"{base_url}line_items.csv")
+    subitem_df = pd.read_csv(f"{base_url}line_subitems.csv")
     
-    print("\\n📊 BASIC ANALYSIS")
+    print("✅ Successfully loaded all datasets!")
+    print(f"   • Service records: {len(service_df)} rows")
+    print(f"   • Line items: {len(line_df)} rows")
+    print(f"   • Subitems: {len(subitem_df)} rows")
+    
+except Exception as e:
+    print(f"❌ Error: {e}")
+    print(f"\n🔧 Please update GITHUB_USERNAME above")
+    print(f"   Current value: '{GITHUB_USERNAME}'")
+
+# %% [markdown]
+# ## 📥 Option 2: Use the Analysis Script from GitHub
+
+# %%
+# Alternative: Download and run the analysis script
+import requests
+
+print("\n📥 Downloading analysis script from GitHub...")
+script_url = f"https://raw.githubusercontent.com/{GITHUB_USERNAME}/{REPO_NAME}/{BRANCH}/car_service_analysis.py"
+
+try:
+    response = requests.get(script_url)
+    with open('car_service_analysis.py', 'w') as f:
+        f.write(response.text)
+    
+    print("✅ Script downloaded successfully!")
+    print("\n🔧 To use the script functions:")
+    print("""
+# Import the module
+import car_service_analysis
+
+# Load data
+service, lines, subitems = car_service_analysis.load_data(github_username="josephnehrenz")
+
+# Run analysis
+stats = car_service_analysis.basic_analysis(service, lines, subitems)
+
+# Create visualizations
+car_service_analysis.create_visualizations(service, lines)
+""")
+    
+except Exception as e:
+    print(f"❌ Could not download script: {e}")
+
+# %% [markdown]
+# ## 📊 Quick Analysis Example
+
+# %%
+if 'service_df' in locals():
+    print("\n📈 QUICK ANALYSIS")
     print("=" * 30)
     
     # Convert dates
     service_df['visit_date'] = pd.to_datetime(service_df['visit_date'])
     
-    # Calculate stats
+    # Basic stats
     total_spent = service_df['total_payment_due'].sum()
     avg_cost = service_df['total_payment_due'].mean()
-    total_miles = service_df['mileage_out'].max() - service_df['mileage_in'].min()
     
     print(f"💰 Total Spent: ${total_spent:,.2f}")
-    print(f"📊 Average Service Cost: ${avg_cost:,.2f}")
-    print(f"🛣️  Total Miles Tracked: {total_miles:,}")
+    print(f"📊 Average Cost: ${avg_cost:,.2f}")
+    print(f"📅 Services: {len(service_df)}")
     print(f"📅 Date Range: {service_df['visit_date'].min().date()} to {service_df['visit_date'].max().date()}")
     
-    # Most common services
-    if 'line_description' in line_df.columns:
-        print("\\n🔧 Most Common Services:")
-        common_services = line_df['line_description'].value_counts().head(5)
-        for service, count in common_services.items():
-            print(f"   • {service}: {count} times")
-    
-    return {
-        'total_spent': total_spent,
-        'avg_cost': avg_cost,
-        'total_miles': total_miles,
-        'num_services': len(service_df)
-    }
-
-def create_visualizations(service_df, line_df):
-    """Create basic visualizations"""
-    
-    print("\\n📈 CREATING VISUALIZATIONS...")
-    
-    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-    
-    # 1. Costs over time
-    service_df = service_df.sort_values('visit_date')
-    axes[0, 0].plot(service_df['visit_date'], service_df['total_payment_due'], 'o-', linewidth=2)
-    axes[0, 0].set_title('Service Costs Over Time')
-    axes[0, 0].set_ylabel('Cost ($)')
-    axes[0, 0].tick_params(axis='x', rotation=45)
-    
-    # 2. Labor vs Parts
-    if 'labor_total' in service_df.columns and 'parts_total' in service_df.columns:
-        axes[0, 1].pie([service_df['labor_total'].sum(), service_df['parts_total'].sum()], 
-                      labels=['Labor', 'Parts'], autopct='%1.1f%%', startangle=90)
-        axes[0, 1].set_title('Labor vs Parts Cost Breakdown')
-    
-    # 3. Mileage vs Cost
-    axes[1, 0].scatter(service_df['mileage_in'], service_df['total_payment_due'], alpha=0.7)
-    axes[1, 0].set_xlabel('Mileage')
-    axes[1, 0].set_ylabel('Cost ($)')
-    axes[1, 0].set_title('Cost vs Mileage')
-    
-    # 4. Monthly spending
-    monthly = service_df.groupby(service_df['visit_date'].dt.to_period('M'))['total_payment_due'].sum()
-    axes[1, 1].bar(range(len(monthly)), monthly.values)
-    axes[1, 1].set_xlabel('Month')
-    axes[1, 1].set_ylabel('Total Cost ($)')
-    axes[1, 1].set_title('Monthly Spending')
-    axes[1, 1].set_xticks(range(len(monthly)))
-    axes[1, 1].set_xticklabels([str(m) for m in monthly.index], rotation=45)
-    
+    # Simple plot
+    plt.figure(figsize=(10, 4))
+    service_df.sort_values('visit_date').plot(x='visit_date', y='total_payment_due', 
+                                              kind='line', marker='o', ax=plt.gca())
+    plt.title('Service Costs Over Time')
+    plt.ylabel('Cost ($)')
+    plt.xlabel('Date')
+    plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.show()
 
-def main():
-    """Main function to run the analysis"""
-    print("=" * 50)
-    print("CAR SERVICE DATA ANALYSIS")
-    print("=" * 50)
-    
-    # Load data
-    service_df, line_df, subitem_df = load_data(github_username="josephnehrenz")
-    
-    if service_df is not None:
-        # Run analysis
-        stats = basic_analysis(service_df, line_df, subitem_df)
-        
-        # Create visualizations
-        create_visualizations(service_df, line_df)
-        
-        print("\\n✅ Analysis complete!")
-        print("\\n📝 Next steps in Kaggle:")
-        print("   1. Click 'Copy & Edit' to create your own notebook")
-        print("   2. Add your own analysis")
-        print("   3. Share your insights!")
-
-if __name__ == "__main__":
-    main()
+# %% [markdown]
+# ## 🎯 Next Steps
+# 
+# 2. **Click "Copy & Edit"** to create your own version
+# 3. **Add your analysis** 
+# 4. **Share insights** in the comments!
